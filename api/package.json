@@ -1,0 +1,26 @@
+{
+  "name": "yolo-label",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run --watch server.ts",
+    "init-schema": "bunx prisma init --datasource-provider sqlite",
+    "init-client": "bunx prisma generate",
+    "init-data": "bunx prisma migrate dev --name init"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prisma": "^7.8.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.4.2",
+    "@elysiajs/static": "^1.4.10",
+    "@prisma/client": "^7.8.0",
+    "elysia": "^1.4.29",
+    "prisma-adapter-bun-sqlite": "^0.8.0",
+    "prismabox": "^1.1.26"
+  }
+}

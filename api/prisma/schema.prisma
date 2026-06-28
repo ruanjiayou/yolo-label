@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+generator prismabox { 
+  provider = "prismabox"
+  typeboxImportDependencyName = "elysia"
+  typeboxImportVariableName = "t"
+  inputModel = true
+  output   = "../generated/prismabox"
+} 
+
+// 项目表
+model ProjectInfo {
+  id      String       @id @default(uuid()) @map("_id")
+  title   String
+  dir     String
+  config  String       @default("{}") // 存储 JSON 字符串：{ defaultLabelId, total, marks }
+  labels  LabelsInfo[]
+  images  ImagesInfo[]
+
+  @@map("project_info")
+}
+
+// 标签表
+model LabelsInfo {
+  id        String      @id @default(uuid()) @map("_id")
+  label     String
+  nth       Int
+  projectId String      @map("project_id")
+  project   ProjectInfo @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("labels_info")
+}
+
+// 图片表
+model ImagesInfo {
+  id        String      @id @default(uuid()) @map("_id")
+  projectId String      @map("project_id")
+  path      String
+  labels    String      @default("[]") // 存储 JSON 字符串：[{nth, cent_x, cent_y, width, height}]
+  project   ProjectInfo @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("images_info")
+}
