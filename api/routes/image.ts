@@ -4,6 +4,7 @@ import client from "../client";
 import { join } from "node:path";
 import { unlinkSync, existsSync } from "node:fs";
 import Response from "../plugins/response";
+import { ImagesInfoInputUpdate } from "../generated/prismabox/ImagesInfo";
 
 const UPLOAD_BASE = join(process.cwd(), "..", "static");
 
@@ -44,6 +45,11 @@ export const imageRoutes = new Elysia({ prefix: "/api/images" })
       labels: t.Array(t.Any())
     })
   })
+
+  .put("/:id", async ({ params: { id }, body, Response }) => {
+    await client.imagesInfo.update({ where: { id }, data: body })
+    return Response.success()
+  }, { body: ImagesInfoInputUpdate })
 
   // 删除图片
   .delete("/:id", async ({ params: { id }, Response }) => {

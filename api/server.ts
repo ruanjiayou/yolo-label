@@ -20,7 +20,7 @@ const app = new Elysia()
     staticPlugin({
       prefix: "/static",
       assets: UPLOAD_BASE,
-      alwaysStatic: true // 优化静态资源响应性能
+      alwaysStatic: false,
     })
   )
   // 链式加载路由模块
