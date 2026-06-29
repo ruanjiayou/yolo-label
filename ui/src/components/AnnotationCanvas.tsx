@@ -50,6 +50,7 @@ export function AnnotationCanvas({
   // 交互状态
   const interactionState = useRef({
     isDragging: false,
+    tip: false,
     // 鼠标开始位置,和移动时当前位置
     startX: 0,
     startY: 0,
@@ -230,6 +231,27 @@ export function AnnotationCanvas({
       ctx.fillStyle = 'rgba(82, 212, 203, 0.2)'
       ctx.fillRect(sel.x, sel.y, sel.width, sel.height)
     }
+
+    if (interactionState.current.tip) {
+      // 垂直虚线
+      ctx.beginPath();
+      ctx.setLineDash([6, 6]);
+      ctx.moveTo(interactionState.current.currentX, 0);
+      ctx.lineTo(interactionState.current.currentX, canvas.height);
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // 水平虚线
+      ctx.beginPath();
+      ctx.moveTo(0, interactionState.current.currentY);
+      ctx.lineTo(canvas.width, interactionState.current.currentY);
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.setLineDash([]); // 重置
+    }
   }, [image, localBoxes, selectedBox, viewState, yoloToCanvas])
 
   // 绘制控制点
@@ -385,7 +407,6 @@ export function AnnotationCanvas({
     const { x, y } = getCanvasCoords(e)
     interactionState.current.currentX = x
     interactionState.current.currentY = y
-
     // 平移
     if (interactionState.current.isPanning) {
       const dx = x - interactionState.current.startX
@@ -516,6 +537,7 @@ export function AnnotationCanvas({
         }
       }
       draw()
+      return
     }
 
     // 右键框选
@@ -527,14 +549,19 @@ export function AnnotationCanvas({
         height: Math.abs(y - interactionState.current.startY)
       }
       draw()
+      return
     }
-
+    if (interactionState.current.tip) {
+      draw()
+      return
+    }
     // 更新光标样式
     updateCursorStyle(x, y)
   }
 
   // 鼠标释放
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    interactionState.current.tip = false
     if (e.button === 0) { // 左键释放
       // 左键框选完成
       if (!interactionState.current.selectedMarkIdx &&
@@ -671,6 +698,10 @@ export function AnnotationCanvas({
       if (key === 'd') {
         onChangeImage(1)
       }
+      if (key === 'w') {
+        interactionState.current.tip = true
+        draw()
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -687,6 +718,7 @@ export function AnnotationCanvas({
       ref={containerRef}
       style={{
         height: '100%',
+        width: '100%',
         position: 'relative',
         display: 'inline-block',
         backgroundColor: '#f0f0f0',

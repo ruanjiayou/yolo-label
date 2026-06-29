@@ -1,6 +1,10 @@
 import type { IProject, IImage, ILabel, IMark } from "../store";
 import shttp from "../utils/shttp";
 
+export async function createProject(data: any) {
+  await shttp.post('/api/projects', data)
+}
+
 export async function getProjects(query = {}) {
   const result = await shttp.get<IProject>(`/api/projects`, { params: query });
   if (result.success) {

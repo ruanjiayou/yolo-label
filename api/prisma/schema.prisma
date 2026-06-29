@@ -12,22 +12,22 @@ datasource db {
   provider = "sqlite"
 }
 
-generator prismabox { 
-  provider = "prismabox"
+generator prismabox {
+  provider                    = "prismabox"
   typeboxImportDependencyName = "elysia"
-  typeboxImportVariableName = "t"
-  inputModel = true
-  output   = "../generated/prismabox"
-} 
+  typeboxImportVariableName   = "t"
+  inputModel                  = true
+  output                      = "../generated/prismabox"
+}
 
 // 项目表
 model ProjectInfo {
-  id      String       @id @default(uuid()) @map("_id")
-  title   String
-  dir     String
-  config  String       @default("{}") // 存储 JSON 字符串：{ total, marks }
-  labels  LabelsInfo[]
-  images  ImagesInfo[]
+  id     String       @id @default(uuid()) @map("_id")
+  title  String
+  dir    String
+  config String       @default("{}") // 存储 JSON 字符串：{ total, marks }
+  labels LabelsInfo[]
+  images ImagesInfo[]
 
   @@map("project_info")
 }
@@ -48,8 +48,11 @@ model ImagesInfo {
   id        String      @id @default(uuid()) @map("_id")
   projectId String      @map("project_id")
   path      String
-  marks    String      @default("[]") // 存储 JSON 字符串：[{nth, cx, cy, width, height}]
+  marks     String      @default("[]") // 存储 JSON 字符串：[{nth, cx, cy, width, height}]
   project   ProjectInfo @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
 
   @@map("images_info")
 }

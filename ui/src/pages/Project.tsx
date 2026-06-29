@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { AnnotationCanvas } from "../components/AnnotationCanvas";
 import store, { IImage, IProject, useLocalProxy } from "../store";
@@ -7,7 +7,7 @@ import { createProjectLabel, deleteImage, deleteLabel, getProjectDetail, getProj
 import styled from "styled-components";
 import { AlignASide } from "../style";
 import Uploader from "../components/Uploader";
-import { DeleteFilled } from "@ant-design/icons";
+import { DeleteFilled, SyncOutlined } from "@ant-design/icons";
 
 const TxtOmit = styled.div`
   position: relative;
@@ -30,7 +30,7 @@ export const Project = () => {
     currentLabelId: string;
   }>({
     loading: true,
-    activeImageIndex: 0,
+    activeImageIndex: -1,
     selectedLabelNth: 0,
     selectedMarkNth: -1,
     project: null,
@@ -40,6 +40,7 @@ export const Project = () => {
   })
 
   const { id } = useParams<{ id: string }>()
+  const [currentImage, setCurrentImage] = useState<IImage | null>(null)
 
   useEffect(() => {
     if (store.projects.length === 0) {
@@ -61,11 +62,16 @@ export const Project = () => {
       // 获取图片列表
       getProjectImages(id).then(images => {
         detailStore.images = images;
+        detailStore.activeImageIndex = 0
       })
     }
   }, [id]);
 
-  const currentImage = detailState.images[detailState.activeImageIndex];
+  useEffect(() => {
+    const data = detailStore.images[detailState.activeImageIndex]
+    setCurrentImage(data ? { ...data } : null)
+  }, [detailState.activeImageIndex])
+  // const currentImage = detailState.images[detailState.activeImageIndex];
 
   // 动作封装
   const saveCurrentAnnotations = useCallback((indexToSave = detailState.activeImageIndex) => {
@@ -105,7 +111,7 @@ export const Project = () => {
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "sans-serif" }}>
       {/* 左侧菜单 */}
-      <div style={{ width: 250, borderRight: "1px solid #ddd", padding: 15 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', width: 250, borderRight: "1px solid #ddd", padding: 15 }}>
         <h3 style={{ marginTop: 0 }}><Link to={"/"}>🏠</Link> 项目选择</h3>
         <AlignASide style={{ gap: 10 }}>
           <select value={id} onChange={(e) => navigate(`/project/${e.target.value}`)} style={{ width: "100%", padding: 8 }}>
@@ -116,13 +122,28 @@ export const Project = () => {
           <Uploader config={{ project_id: id }} />
         </AlignASide>
 
-        <h4>图片列表 ({detailState.images.length === 0 ? 0 : detailState.activeImageIndex + 1}/{detailState.images.length})</h4>
-        <div style={{ maxHeight: "50vh", overflowY: "auto" }}>
+        <AlignASide style={{ margin: '10px 0' }}>
+          <span>图片列表 ({detailState.images.length === 0 ? 0 : detailState.activeImageIndex + 1}/{detailState.images.length})</span>
+          <SyncOutlined onClick={() => {
+            getProjectImages(id as string).then(images => {
+              detailStore.images = images;
+            })
+          }} />
+          <div></div>
+        </AlignASide>
+        <div style={{ flex: 1, overflowY: "auto" }}>
           {detailState.images.map((img, idx) => (
             <AlignASide key={img.id} style={{ gap: 10, padding: "6px 10px", backgroundColor: idx === detailState.activeImageIndex ? "#e6f7ff" : "transparent", }}>
               <TxtOmit
                 title={img.path}
-                onClick={() => { saveCurrentAnnotations(); detailStore.activeImageIndex = idx; }}
+                onClick={(e) => {
+                  saveCurrentAnnotations();
+                  detailStore.activeImageIndex = idx;
+                  e.currentTarget.scrollIntoView({
+                    behavior: 'smooth',  // 平滑滚动
+                    block: 'center',
+                  })
+                }}
                 style={{
                   cursor: "pointer",
                   overflow: "hidden",
@@ -156,9 +177,12 @@ export const Project = () => {
             }}
             onUpdateMarks={marks => {
               detailStore.images.forEach(image => {
-                updateImageMarks(image.id, marks).then(() => {
-                  image.marks = marks
-                })
+                if (currentImage && image.id === currentImage.id) {
+                  updateImageMarks(image.id, marks).then(() => {
+                    image.marks = marks
+                    currentImage.marks = marks
+                  })
+                }
               })
             }}
             onChangeImage={changeImage}

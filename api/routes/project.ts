@@ -65,7 +65,8 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
   // 获取项目的图片列表
   .get("/:id/images", async ({ params: { id }, Response }) => {
     const images = await client.imagesInfo.findMany({
-      where: { projectId: id }
+      where: { projectId: id },
+      orderBy: { createdAt: 'asc' }
     });
     const list = images.map(img => ({
       ...img,

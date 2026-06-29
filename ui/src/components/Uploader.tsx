@@ -19,6 +19,8 @@ function Uploader(props: { config: any }) {
   const [modalVisible, setModalVisible] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const containerRef = useRef<HTMLDivElement>(null)
+
   const handleSelectClick = () => {
     fileInputRef.current?.click()
   }
@@ -78,6 +80,15 @@ function Uploader(props: { config: any }) {
             : f
         )
       )
+      if (containerRef.current) {
+        const next = containerRef.current.querySelector('.item.uploading')
+        if (next) {
+          next.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          })
+        }
+      }
     } catch (error) {
       setFiles(prev =>
         prev.map(f =>
@@ -234,10 +245,11 @@ function Uploader(props: { config: any }) {
             暂无图片
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} ref={containerRef}>
             {files.map(file => (
               <div
                 key={file.id}
+                className={`item ${file.status}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

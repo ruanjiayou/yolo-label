@@ -1,15 +1,20 @@
 # yolo-label
 
-To install dependencies:
+## 安装启动服务器
 
 ```bash
-bun install
+cd api && bun install && bun start
 ```
 
-To run:
-
+## 安装启动网页
 ```bash
-bun run src/index.ts
+cd ui && bun install bun run dev
 ```
 
 This project was created using `bun init` in bun v1.3.12. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+
+## TODO
+- [x] 自动滚到可视区域（图片列表和上传图片列表）
+- [ ] 图片列表刷新功能
+- [ ] 调整标注大小后更新数据
+- [ ] 图片默认显示比例为100%
