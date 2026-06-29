@@ -2,16 +2,12 @@
 import { Elysia, t } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { staticPlugin } from "@elysiajs/static";
-import { mkdir, unlink } from "node:fs/promises";
-import { join } from "node:path";
-import client from './client'
+import config from "./config";
 
 // 引入拆分的路由子模块
 import { projectRoutes } from "./routes/project";
 import { labelRoutes } from "./routes/label";
 import { imageRoutes } from "./routes/image";
-
-const UPLOAD_BASE = join(process.cwd(), "..", "static");
 
 const app = new Elysia()
   .use(cors())
@@ -19,7 +15,7 @@ const app = new Elysia()
   .use(
     staticPlugin({
       prefix: "/static",
-      assets: UPLOAD_BASE,
+      assets: config.UPLOAD_BASE,
       alwaysStatic: false,
     })
   )

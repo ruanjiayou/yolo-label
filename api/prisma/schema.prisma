@@ -25,7 +25,7 @@ model ProjectInfo {
   id      String       @id @default(uuid()) @map("_id")
   title   String
   dir     String
-  config  String       @default("{}") // 存储 JSON 字符串：{ defaultLabelId, total, marks }
+  config  String       @default("{}") // 存储 JSON 字符串：{ total, marks }
   labels  LabelsInfo[]
   images  ImagesInfo[]
 
@@ -48,7 +48,7 @@ model ImagesInfo {
   id        String      @id @default(uuid()) @map("_id")
   projectId String      @map("project_id")
   path      String
-  labels    String      @default("[]") // 存储 JSON 字符串：[{nth, cent_x, cent_y, width, height}]
+  marks    String      @default("[]") // 存储 JSON 字符串：[{nth, cx, cy, width, height}]
   project   ProjectInfo @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("images_info")

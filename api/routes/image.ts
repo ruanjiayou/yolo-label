@@ -1,32 +1,31 @@
 // routes/image.ts
 import { Elysia, t } from "elysia";
-import client from "../client";
+import client from "../plugins/db";
 import { join } from "node:path";
 import { unlinkSync, existsSync } from "node:fs";
 import Response from "../plugins/response";
 import { ImagesInfoInputUpdate } from "../generated/prismabox/ImagesInfo";
-
-const UPLOAD_BASE = join(process.cwd(), "..", "static");
+import config from "../config";
 
 export const imageRoutes = new Elysia({ prefix: "/api/images" })
   .decorate('Response', new Response())
 
-  // 更新图片标注数据 (包含同步更新项目的 marks 计数逻辑)
-  .post("/:id/labels", async ({ params: { id }, body, Response }) => {
-    const { labels } = body;
+  // 更新图片标注数组 (包含同步更新项目的 marks 计数逻辑)
+  .put("/:id/marks", async ({ params: { id }, body, Response }) => {
+    const { marks } = body;
 
     const updatedImg = await client.imagesInfo.update({
       where: { id },
-      data: { labels: JSON.stringify(labels) }
+      data: { marks: JSON.stringify(marks) }
     });
 
     // 重新计算项目已标注图片的总数
     const projectId = updatedImg.projectId;
     const allImages = await client.imagesInfo.findMany({
       where: { projectId },
-      select: { labels: true }
+      select: { marks: true }
     });
-    const marksCount = allImages.filter(img => JSON.parse(img.labels).length > 0).length;
+    const marksCount = allImages.filter(img => JSON.parse(img.marks).length > 0).length;
 
     // 更新项目配置里的 marks
     const project = await client.projectInfo.findUnique({ where: { id: projectId } });
@@ -42,7 +41,7 @@ export const imageRoutes = new Elysia({ prefix: "/api/images" })
     return Response.success()
   }, {
     body: t.Object({
-      labels: t.Array(t.Any())
+      marks: t.Array(t.Any())
     })
   })
 
@@ -57,7 +56,7 @@ export const imageRoutes = new Elysia({ prefix: "/api/images" })
     if (!image) {
       return Response.failure("NotFound")
     }
-    const fullpath = join(UPLOAD_BASE, image.projectId, image.path)
+    const fullpath = join(config.UPLOAD_BASE, image.projectId, image.path)
     if (existsSync(fullpath)) {
       unlinkSync(fullpath)
     }

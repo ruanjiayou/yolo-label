@@ -1,11 +1,11 @@
 // routes/project.ts
 import { Elysia, t } from "elysia";
-import client from "../client";
+import client from "../plugins/db";
 import { extname, join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import Response from "../plugins/response";
-
-const UPLOAD_BASE = join(process.cwd(), "..", "static");
+import config from "../config";
+import { calculateFileHash } from "../plugins/hash";
 
 export const projectRoutes = new Elysia({ prefix: "/api/projects" })
   .decorate('Response', new Response())
@@ -22,7 +22,7 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
   // 创建项目
   .post("/", async ({ body, Response }) => {
     const { title } = body;
-    const defaultConfig = JSON.stringify({ defaultLabelId: "", total: 0, marks: 0 });
+    const defaultConfig = JSON.stringify({ total: 0, marks: 0 });
 
     const newProject = await client.projectInfo.create({
       data: {
@@ -32,7 +32,7 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
       },
     });
 
-    const projectDir = join(UPLOAD_BASE, newProject.id);
+    const projectDir = join(config.UPLOAD_BASE, newProject.id);
     await mkdir(projectDir, { recursive: true });
 
     // 更新实际创建的本地目录路径
@@ -69,25 +69,16 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
     });
     const list = images.map(img => ({
       ...img,
-      labels: JSON.parse(img.labels)
+      marks: JSON.parse(img.marks)
     }));
     return Response.success({ list })
   })
 
-  // 获取指定项目的所有标签
-  .get("/:id/labels", async ({ params: { id }, Response }) => {
-    const list = await client.labelsInfo.findMany({
-      where: { id },
-      orderBy: { nth: "asc" }
-    });
-    return Response.success({ list })
-  })
-
   // 上传图片到对应项目的目录下
-  .post("/:projectId/images", async ({ params: { projectId }, body, Response }) => {
+  .post("/:id/images", async ({ params: { id }, body, Response }) => {
     // 1. 查找项目是否存在及获取其对应的本地目录
     const project = await client.projectInfo.findUnique({
-      where: { id: projectId }
+      where: { id }
     });
 
     if (!project) {
@@ -103,11 +94,16 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
       const rawExt = extname(file.name);
       const ext = rawExt.toLowerCase();
 
-      // 使用 Bun.password.uuidv7() 或加密标准方法生成 UUID v7
-      // 也可以使用第三方库如 uuid，这里直接采用标准符合条件的格式串或 Bun 提供的加密接口
-      const newId = crypto.randomUUID(); // 如果需要标准的 v7，可使用第三方库或保持此格式，此处保证全局唯一性
+      const newId = await calculateFileHash(file)
+
+      const existed = await client.imagesInfo.findFirst({ where: { id: newId } })
+      if (existed) {
+        console.log(file.name, '已存在')
+        continue;
+      }
+
       const newFileName = `${newId}${ext}`;
-      const destPath = join(UPLOAD_BASE, project.dir, newFileName);
+      const destPath = join(config.UPLOAD_BASE, project.dir, newFileName);
 
       // 3. 将文件写入到项目的专用文件夹中
       await Bun.write(destPath, file);
@@ -116,9 +112,9 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
       const newImage = await client.imagesInfo.create({
         data: {
           id: newId,
-          projectId: projectId,
+          projectId: id,
           path: newFileName,
-          labels: "[]" // 默认标注数据为空数组字符串
+          marks: "[]" // 默认标注数据为空数组字符串
         }
       });
 
@@ -127,14 +123,14 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
 
     // 5. 联动更新项目表中的图片总数 (total)
     const totalCount = await client.imagesInfo.count({
-      where: { projectId }
+      where: { projectId: id }
     });
 
     const configObj = JSON.parse(project.config);
     configObj.total = totalCount;
 
     await client.projectInfo.update({
-      where: { id: projectId },
+      where: { id },
       data: { config: JSON.stringify(configObj) }
     });
 
@@ -149,21 +145,4 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
     })
   })
 
-  // 新增标签
-  .post("/:projectId/labels", async ({ params: { projectId }, body, Response }) => {
-    const { label, nth } = body;
-    try {
-      const data = await client.labelsInfo.create({
-        data: { label, nth, projectId }
-      });
-      return Response.success(data)
-    } catch (e: any) {
-      return Response.failure(e.message)
-    }
-  }, {
-    body: t.Object({
-      label: t.String(),
-      nth: t.Integer(),
-    })
-  })
 
