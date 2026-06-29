@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react'
 import { Modal, Progress, Button, Space, message } from 'antd'
-import { UploadOutlined, DeleteOutlined } from '@ant-design/icons'
+import { UploadOutlined } from '@ant-design/icons'
 import axios, { AxiosProgressEvent } from 'axios'
-import type { UploadFile } from 'antd/es/upload/interface'
 
 interface UploadFileItem {
   id: string

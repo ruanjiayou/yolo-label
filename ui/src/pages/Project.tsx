@@ -196,7 +196,7 @@ export const Project = () => {
               <AlignASide>
                 <span>{detailState.labelMap[mark.id] || '未知'}</span>
                 <span onClick={() => {
-                  const marks = currentImage.marks.filter((m, nth) => nth !== idx)
+                  const marks = currentImage.marks.filter((_m, nth) => nth !== idx)
                   updateImageMarks(currentImage.id, marks).then(() => {
                     detailStore.images.forEach(image => {
                       if (image.id === currentImage.id) {
