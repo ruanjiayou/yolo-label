@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Modal, Progress, Button, Space, message } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import axios, { AxiosProgressEvent } from 'axios'
@@ -16,11 +16,20 @@ interface UploadFileItem {
 function Uploader(props: { config: any }) {
   const [files, setFiles] = useState<UploadFileItem[]>([])
   const [uploading, setUploading] = useState(false)
+  const [isScroll, setIsScroll] = useState(false)
   const [modalVisible, setModalVisible] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
-
+  const scrollend = useCallback(() => {
+    setIsScroll(false)
+  }, [])
+  useEffect(() => {
+    containerRef.current?.addEventListener('scrollend', scrollend)
+    return () => {
+      containerRef.current?.removeEventListener('scrollend', scrollend)
+    }
+  }, [containerRef.current])
   const handleSelectClick = () => {
     fileInputRef.current?.click()
   }
@@ -81,11 +90,12 @@ function Uploader(props: { config: any }) {
         )
       )
       if (containerRef.current) {
-        const next = containerRef.current.querySelector('.item.uploading')
-        if (next) {
+        const next = containerRef.current.querySelector('.item.pending')
+        if (next && !isScroll) {
+          setIsScroll(true)
           next.scrollIntoView({
             behavior: 'smooth',
-            block: 'center',
+            block: 'nearest',
           })
         }
       }

@@ -9,6 +9,22 @@ import { AlignASide } from "../style";
 import Uploader from "../components/Uploader";
 import { DeleteFilled, SyncOutlined } from "@ant-design/icons";
 
+const List = styled.div`
+  background-color: #eee;
+  border-left: 5px solid #558ABB;
+  padding-top: 5px;
+  counter-reset: linenumber;
+  flex: 1;
+  overflow-y: auto;
+  &>div:before {
+    counter-increment: linenumber;
+    display: inline-block;
+    width: 30px;
+    height: 100%;
+    content: " "counter(linenumber) ". ";
+  }
+`
+
 const TxtOmit = styled.div`
   position: relative;
   overflow: hidden;
@@ -131,9 +147,9 @@ export const Project = () => {
           }} />
           <div></div>
         </AlignASide>
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <List>
           {detailState.images.map((img, idx) => (
-            <AlignASide key={img.id} style={{ gap: 10, padding: "6px 10px", backgroundColor: idx === detailState.activeImageIndex ? "#e6f7ff" : "transparent", }}>
+            <AlignASide key={img.id} style={{ gap: 10, padding: "5px 10px 5px 10px", backgroundColor: idx === detailState.activeImageIndex ? "#e6f7ff" : "transparent", }}>
               <TxtOmit
                 title={img.path}
                 onClick={(e) => {
@@ -152,7 +168,7 @@ export const Project = () => {
                   direction: "rtl"
                 }}
               >
-                {img.path} {img.marks.length > 0 ? "✓" : ""}
+                {img.path}
               </TxtOmit>
               <DeleteFilled color="red" onClick={() => {
                 deleteImage(img.id).then(() => {
@@ -161,7 +177,7 @@ export const Project = () => {
               }} />
             </AlignASide>
           ))}
-        </div>
+        </List>
 
       </div>
 
@@ -239,7 +255,8 @@ export const Project = () => {
           <h5>操作说明:</h5>
           <ul>
             <li>拉框自动使用右侧选中类别</li>
-            <li>键盘 Q: 删除选中的标注</li>
+            <li>键盘 Q: 删除所选标注</li>
+            <li>键盘 S: 显示辅助线</li>
             <li>键盘 A: 上一张</li>
             <li>键盘 D: 下一张</li>
           </ul>
@@ -248,7 +265,7 @@ export const Project = () => {
         <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button onClick={() => changeImage(-1)} disabled={detailState.activeImageIndex === 0}>上一张 (A)</button>
           <button onClick={() => changeImage(1)} disabled={detailState.activeImageIndex === detailState.images.length - 1}>下一张 (D)</button>
-          <span style={{ marginLeft: 15, color: "#666" }}>💡 鼠标滚动可放大缩小图片</span>
+          <span style={{ marginLeft: 15, color: "#666" }}>💡 鼠标滚动可缩放图片</span>
         </div>
         <button onClick={handleExportYolo} style={{ marginTop: 20, width: "100%", padding: 10, background: "#52c41a", color: "#fff", border: "none" }}>
           一键划分为 YOLO 数据集

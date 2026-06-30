@@ -97,14 +97,10 @@ export function AnnotationCanvas({
       // 计算初始缩放，让图片适应画布
       const canvas = canvasRef.current
       if (canvas && containerRef.current) {
-        // canvas.width = containerRef.current.offsetWidth * dpr;
-        // canvas.height = containerRef.current.offsetHeight * dpr;
-        // canvas.style.width = containerRef.current.offsetWidth + 'px';
-        // canvas.style.height = containerRef.current.offsetHeight + 'px';
 
         const scaleX = canvas.width / img.width
         const scaleY = canvas.height / img.height
-        const initialZoom = Math.min(scaleX, scaleY) * 0.9 // 留边距
+        const initialZoom = Math.min(scaleX, scaleY) * 0.95 // 留边距
 
         setViewState(prev => ({
           ...prev,
@@ -327,6 +323,7 @@ export function AnnotationCanvas({
     if (e.button === 0) { // 左键
       // ✅ 检查是否点击了控制点（先检查选中的框）
       let selectedControlPoint = null
+      interactionState.current.isDragging = false;
       if (selectedBox) {
         selectedControlPoint = getControlPoint(x, y, selectedBox)
         if (selectedControlPoint) {
@@ -434,6 +431,7 @@ export function AnnotationCanvas({
         const updatedBoxes = [...localBoxes]
         const box = updatedBoxes[boxIndex]
 
+        interactionState.current.isDragging = true;
         // ✅ 判断是控制点调整还是框移动
         if (interactionState.current.selectedControlPoint) {
           // ✅ 控制点调整 - 调整框的大小
@@ -563,23 +561,9 @@ export function AnnotationCanvas({
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     interactionState.current.tip = false
     if (e.button === 0) { // 左键释放
-      // 左键框选完成
-      if (!interactionState.current.selectedMarkIdx &&
-        interactionState.current.selectionBox) {
-        const sel = interactionState.current.selectionBox
-        if (sel.width > 10 && sel.height > 10) {
-          const selected = localBoxes.filter(box => {
-            const { x: bx, y: by, width: bw, height: bh } = yoloToCanvas(
-              box.cx, box.cy, box.width, box.height
-            )
-            return bx >= sel.x && bx + bw <= sel.x + sel.width &&
-              by >= sel.y && by + bh <= sel.y + sel.height
-          })
-          if (selected.length > 0 && localBoxes[selected.length - 1]) {
-            setSelectedBox(selected[selected.length - 1])
-            changeMarkIdx(selected.length - 1)
-          }
-        }
+      // 左键 选中并拖动了,更新数据
+      if (interactionState.current.isSelecting && interactionState.current.isDragging) {
+        onUpdateMarks(localBoxes)
       }
 
       interactionState.current.isSelecting = false
@@ -698,8 +682,8 @@ export function AnnotationCanvas({
       if (key === 'd') {
         onChangeImage(1)
       }
-      if (key === 'w') {
-        interactionState.current.tip = true
+      if (key === 'w' || key === 's') {
+        interactionState.current.tip = !interactionState.current.tip
         draw()
       }
     }
