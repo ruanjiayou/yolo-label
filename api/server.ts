@@ -24,6 +24,6 @@ const app = new Elysia()
   .use(labelRoutes)
   .use(imageRoutes)
 
-  .listen(3001);
+  .listen(config.PORT);
 
-console.log(`Backend running at http://localhost:3001`);
+console.log(`Backend running at http://localhost:${config.PORT}`);

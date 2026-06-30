@@ -197,29 +197,13 @@ function Uploader(props: { config: any }) {
             上传图片
           </Button>
         </label>
-        {files.length > 0 && (
-          <Button
-            type="default"
-            onClick={() => setModalVisible(true)}
-          >
-            查看列表 ({files.length})
-          </Button>
-        )}
       </div>
 
       {/* 进度对话框 */}
       <Modal
-        title={
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>
-              📤 上传进度
-              <span style={{ marginLeft: 10, fontSize: '14px', fontWeight: 'normal', color: '#8c8c8c' }}>
-                {doneCount}/{totalCount} 已完成
-              </span>
-            </span>
-          </div>
-        }
+        title=""
         open={modalVisible}
+        closable={false}
         onCancel={() => {
           if (!uploading) {
             setModalVisible(false)
@@ -227,12 +211,17 @@ function Uploader(props: { config: any }) {
         }}
         footer={
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-            <div style={{ fontSize: '14px', color: '#8c8c8c' }}>
-              待上传: {pendingCount} 张
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>
+                📤 上传进度
+                <span style={{ marginLeft: 10, fontSize: '14px', fontWeight: 'normal', color: '#8c8c8c' }}>
+                  {doneCount}/{totalCount} 已完成
+                </span>
+              </span>
             </div>
             <Space>
               <Button onClick={clearAll} disabled={uploading}>
-                清空
+                关闭
               </Button>
               <Button
                 type="primary"
@@ -306,7 +295,6 @@ function Uploader(props: { config: any }) {
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
-                        maxWidth: '200px',
                       }}
                       title={file.name}
                     >
