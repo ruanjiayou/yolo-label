@@ -25,6 +25,7 @@ export type IMark = {
 export type IImage = {
   id: string;
   path: string;
+  group: string;
   marks: IMark[];
 }
 
@@ -40,10 +41,12 @@ const store = proxy<{
   app: typeof App,
   projects: IProject[],
   showXline: boolean,
+  showProjectDetail: boolean,
 }>({
   app: App,
   projects: [],
   showXline: false,
+  showProjectDetail: false,
 });
 
 export default store;

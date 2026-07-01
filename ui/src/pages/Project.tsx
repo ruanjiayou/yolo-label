@@ -7,8 +7,8 @@ import { createProjectLabel, deleteImage, deleteLabel, getProjectDetail, getProj
 import styled from "styled-components";
 import { AlignASide } from "../style";
 import Uploader from "../components/Uploader";
-import { CheckCircleOutlined, DeleteFilled, SyncOutlined } from "@ant-design/icons";
-import { Button, Input, List, Select, Space, } from "antd";
+import { CaretDownOutlined, CaretRightOutlined, CheckCircleOutlined, CopyOutlined, DeleteFilled, SyncOutlined } from "@ant-design/icons";
+import { Button, Input, List, Select, Space, Tooltip } from "antd";
 import type { InputRef } from 'antd';
 
 const MyList = styled.div`
@@ -95,7 +95,6 @@ export const Project = () => {
     const data = detailStore.images[detailState.activeImageIndex]
     setCurrentImage(data ? { ...data } : null)
   }, [detailState.activeImageIndex])
-  // const currentImage = detailState.images[detailState.activeImageIndex];
 
   const changeImage = useCallback((direction: 1 | -1) => {
     if (direction === 1 && detailStore.activeImageIndex < detailStore.images.length - 1) {
@@ -176,11 +175,13 @@ export const Project = () => {
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
-                  direction: "rtl"
                 }}
               >
                 {img.path}
               </TxtOmit>
+              <Tooltip title={currentImage?.path}>
+                <CopyOutlined />
+              </Tooltip>
               <DeleteFilled color="red" onClick={() => {
                 const idx = detailStore.images.findIndex(v => v.id === img.id)
                 if (idx === detailStore.activeImageIndex) detailStore.activeImageIndex = -1;
@@ -196,7 +197,7 @@ export const Project = () => {
       </div>
 
       {/* 中间操作画布 */}
-      <div style={{ height: '100%', flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: 'relative' }}>
+      <div style={{ height: '100%', flex: 1, overflow:'hidden', display: "flex", flexDirection: "column", alignItems: "center", position: 'relative' }}>
         {currentImage ? (
           <AnnotationCanvas
             imageSrc={`/static/${id}/${currentImage.path}`}
@@ -224,37 +225,50 @@ export const Project = () => {
 
       {/* 右侧设置 */}
       <div style={{ width: 200, borderLeft: "1px solid #ddd", padding: 15, display: "flex", flexDirection: "column" }}>
-        <AlignASide style={{ gap: 10 }}>
-        </AlignASide>
+        <div>
+          <Button type="text"
+            style={{ marginBottom: 10 }}
+            icon={state.showProjectDetail ? <CaretDownOutlined /> : <CaretRightOutlined />}
+            onClick={() => { store.showProjectDetail = !store.showProjectDetail }}
+          >详情</Button>
+        </div>
+        <Space style={{ gap: 10, display: state.showProjectDetail ? 'block' : 'none' }} vertical>
+          <Space.Compact>
+            <Space.Addon>分类</Space.Addon>
+            <Input id="label_input" value={detailState.labelToAdd} ref={classRef} style={{ flex: 1, minWidth: 30 }} onChange={(e) => {
+              detailStore.labelToAdd = e.target.value
+            }} />
+            <Button type="primary" onClick={onAddLabel}>添加</Button>
+          </Space.Compact>
+          <List bordered header={"分类列表"} style={{ marginTop: 10, marginBottom: 10, overflow: 'hidden' }}>
+            {detailState.project?.labels!.map((l, nth) => (
+              <List.Item key={l.id} style={detailState.selectedLabelNth === nth ? { backgroundColor: '#07f8', color: 'white' } : {}}>
+                <AlignASide style={{ margin: '5px 0', width: '100%' }} onClick={() => {
+                  detailStore.selectedLabelNth = nth
+                  detailStore.currentLabelId = l.id
+                }}>
+                  <span>{l.nth} {l.label} {detailState.selectedLabelNth === nth ? <CheckCircleOutlined /> : ''}</span>
+                  <DeleteFilled onClick={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onDeleteLabel(l.id)
+                  }} />
+                </AlignASide>
+              </List.Item>
+            ))}
+          </List>
+          <List bordered header={"分组列表"} style={{ marginBottom: 10, backgroundColor: '#eee', cursor: 'not-allowed' }}>
+            {detailState.project?.groups.map((group, idx) => (
+              <List.Item key={idx}>{group}</List.Item>
+            ))}
+          </List>
+        </Space>
         <Space.Compact>
-          <Input id="label_input" value={detailState.labelToAdd} ref={classRef} style={{ flex: 1, minWidth: 30 }} addonBefore={"分类"} onChange={(e) => {
-            detailStore.labelToAdd = e.target.value
-          }} />
-          <Button type="primary" onClick={onAddLabel}>添加</Button>
+          <Space.Addon>分组</Space.Addon>
+          <Input value={currentImage?.group || ''} disabled />
+          <Button type="primary">修改</Button>
         </Space.Compact>
-        <List bordered header={"分类列表"} style={{ marginTop: 10, marginBottom: 10, overflow: 'hidden' }}>
-          {detailState.project?.labels!.map((l, nth) => (
-            <List.Item key={l.id} style={detailState.selectedLabelNth === nth ? { backgroundColor: '#07f8', color: 'white' } : {}}>
-              <AlignASide style={{ margin: '5px 0', width: '100%' }} onClick={() => {
-                detailStore.selectedLabelNth = nth
-                detailStore.currentLabelId = l.id
-              }}>
-                <span>{l.nth} {l.label} {detailState.selectedLabelNth === nth ? <CheckCircleOutlined /> : ''}</span>
-                <DeleteFilled onClick={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  onDeleteLabel(l.id)
-                }} />
-              </AlignASide>
-            </List.Item>
-          ))}
-        </List>
-        <List bordered header={"分组列表"} style={{ marginBottom: 10, backgroundColor: '#eee', cursor: 'not-allowed' }}>
-          {detailState.project?.groups.map((group, idx) => (
-            <List.Item key={idx}>{group}</List.Item>
-          ))}
-        </List>
-        <List bordered header={"标注数组"}>
+        <List bordered header={"标注数组"} style={{ marginTop: 10 }}>
           {currentImage && currentImage.marks.map((mark, idx) => (
             <List.Item key={idx}>
               <AlignASide style={{ width: '100%' }}>
@@ -273,7 +287,6 @@ export const Project = () => {
             </List.Item>
           ))}
         </List>
-
         <div style={{ flex: 1 }}></div>
         <div style={{ marginTop: 10, fontSize: 13, color: "#666" }}>
           <h5>操作说明:</h5>

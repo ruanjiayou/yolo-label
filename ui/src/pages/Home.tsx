@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { createProject, getProjects } from '../apis'
 import store, { IProject, useLocalProxy } from '../store'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useSnapshot } from 'valtio'
 import { Button, Input, Modal, Space, List } from 'antd'
 import { AlignASide } from '../style'

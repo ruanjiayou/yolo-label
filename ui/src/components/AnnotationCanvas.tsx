@@ -1,6 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import store from '../store'
-import { useSnapshot } from 'valtio'
 
 // YOLO 格式标注框
 interface MarkBox {
@@ -32,7 +31,6 @@ export function AnnotationCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const state = useSnapshot(store)
   const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 })
   // 状态管理
   const [selectedBox, setSelectedBox] = useState<MarkBox | null>(null)

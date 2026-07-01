@@ -4,7 +4,7 @@ api/node_modules
 # output
 out
 dist
-static/public
+static/raw
 *.tgz
 
 # code coverage
