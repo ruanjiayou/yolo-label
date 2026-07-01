@@ -53,7 +53,7 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
       return Response.failure("NotFound")
     }
     const labels = await client.labelsInfo.findMany({ where: { projectId: id } })
-    return Response.success({ info: { ...info, config: JSON.parse(info.config), labels } })
+    return Response.success({ info: { ...info, config: JSON.parse(info.config), groups: JSON.parse(info.groups), labels } })
   })
 
   // 删除项目
@@ -63,9 +63,13 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
   })
 
   // 获取项目的图片列表
-  .get("/:id/images", async ({ params: { id }, Response }) => {
+  .get("/:id/images", async ({ params: { id }, query, Response }) => {
+    const where: any = { projectId: id }
+    if (query.group) {
+      where.group = query.group;
+    }
     const images = await client.imagesInfo.findMany({
-      where: { projectId: id },
+      where,
       orderBy: { createdAt: 'asc' }
     });
     const list = images.map(img => ({
@@ -76,7 +80,7 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
   })
 
   // 上传图片到对应项目的目录下
-  .post("/:id/images", async ({ params: { id }, body, Response }) => {
+  .post("/:id/images", async ({ params: { id }, query, body, Response }) => {
     // 1. 查找项目是否存在及获取其对应的本地目录
     const project = await client.projectInfo.findUnique({
       where: { id }
@@ -97,17 +101,17 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
 
       const newId = await calculateFileHash(file)
 
-      const existed = await client.imagesInfo.findFirst({ where: { id: newId } })
-      if (existed) {
-        console.log(file.name, '已存在')
-        continue;
-      }
-
       const newFileName = `${newId}${ext}`;
       const destPath = join(config.UPLOAD_BASE, project.dir, newFileName);
 
       // 3. 将文件写入到项目的专用文件夹中
       await Bun.write(destPath, file);
+
+      const existed = await client.imagesInfo.findFirst({ where: { id: newId } })
+      if (existed) {
+        console.log(file.name, '已存在')
+        continue;
+      }
 
       // 4. 将图片记录写入数据库
       const newImage = await client.imagesInfo.create({
@@ -115,6 +119,7 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
           id: newId,
           projectId: id,
           path: newFileName,
+          group: body.group || '',
           marks: "[]" // 默认标注数据为空数组字符串
         }
       });
@@ -129,16 +134,21 @@ export const projectRoutes = new Elysia({ prefix: "/api/projects" })
 
     const configObj = JSON.parse(project.config);
     configObj.total = totalCount;
+    const groups = JSON.parse(project.groups);
+    if (body.group && !groups.includes(body.group)) {
+      groups.push(body.group)
+    }
 
     await client.projectInfo.update({
       where: { id },
-      data: { config: JSON.stringify(configObj) }
+      data: { config: JSON.stringify(configObj), groups: JSON.stringify(groups) }
     });
 
     return Response.success()
   }, {
     // 使用 TypeBox 对上传的文件类型进行严格校验
     body: t.Object({
+      group: t.String(),
       files: t.Union([
         t.File({ type: "image/*" }),
         t.Array(t.File({ type: "image/*" }))

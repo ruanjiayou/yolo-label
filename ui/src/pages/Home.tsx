@@ -3,8 +3,19 @@ import { createProject, getProjects } from '../apis'
 import store, { IProject, useLocalProxy } from '../store'
 import { useEffect, useState } from 'react'
 import { useSnapshot } from 'valtio'
-import { Button, Input, Modal, Space } from 'antd'
+import { Button, Input, Modal, Space, List } from 'antd'
 import { AlignASide } from '../style'
+import styled from 'styled-components'
+
+const Main = styled.div`
+  font-size: 14px;
+  color: rgb(140, 140, 140);
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`
 
 export default function Home() {
   const state = useSnapshot(store)
@@ -24,8 +35,8 @@ export default function Home() {
     init()
   }, [])
   return (
-    <div style={{ padding: 15 }}>
-      <AlignASide style={{ width: 150 }}>项目列表 <Button onClick={() => statusStore.modalVisible = true}>创建</Button></AlignASide>
+    <div style={{ padding: 15, width: '50%', margin: '0 auto', height: '100vh', boxSizing: 'border-box' }}>
+
       <Modal
         title="创建项目"
         open={statusState.modalVisible}
@@ -33,7 +44,7 @@ export default function Home() {
           statusStore.modalVisible = false
         }}
         footer={
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
 
             <Space>
               <Button onClick={() => statusStore.modalVisible = false}>
@@ -52,12 +63,12 @@ export default function Home() {
             </Space>
           </div>
         }
-        width={600}
+        width={300}
         styles={{
           body: { maxHeight: '400px', overflowY: 'auto' }
         }}
       >
-        <div style={{ fontSize: '14px', color: '#8c8c8c' }}>
+        <Main>
           <Input
             onCompositionStart={() => {
               statusStore.composing = true
@@ -72,13 +83,17 @@ export default function Home() {
               }
             }}
           />
-        </div>
+        </Main>
       </Modal>
-      <div>
+      <List bordered style={{ height: '100%' }} header={
+        <AlignASide style={{ width: 150 }}>项目列表 <Button onClick={() => statusStore.modalVisible = true}>创建</Button></AlignASide>
+      }>
         {state.projects.map(project => (
-          <Link key={project.id} to={"/project/" + project.id}>{project.title}</Link>
+          <List.Item key={project.id} style={{ borderBottom: '1px solid #eee' }}>
+            <Link to={"/project/" + project.id}>{project.title}</Link>
+          </List.Item>
         ))}
-      </div>
+      </List>
 
     </div>
   )

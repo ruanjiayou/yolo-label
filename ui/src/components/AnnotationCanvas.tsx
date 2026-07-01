@@ -1,4 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
+import store from '../store'
+import { useSnapshot } from 'valtio'
 
 // YOLO 格式标注框
 interface MarkBox {
@@ -30,6 +32,7 @@ export function AnnotationCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const state = useSnapshot(store)
   const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 })
   // 状态管理
   const [selectedBox, setSelectedBox] = useState<MarkBox | null>(null)
@@ -50,7 +53,6 @@ export function AnnotationCanvas({
   // 交互状态
   const interactionState = useRef({
     isDragging: false,
-    tip: false,
     // 鼠标开始位置,和移动时当前位置
     startX: 0,
     startY: 0,
@@ -228,7 +230,7 @@ export function AnnotationCanvas({
       ctx.fillRect(sel.x, sel.y, sel.width, sel.height)
     }
 
-    if (interactionState.current.tip) {
+    if (store.showXline) {
       // 垂直虚线
       ctx.beginPath();
       ctx.setLineDash([6, 6]);
@@ -549,7 +551,7 @@ export function AnnotationCanvas({
       draw()
       return
     }
-    if (interactionState.current.tip) {
+    if (store.showXline) {
       draw()
       return
     }
@@ -559,7 +561,6 @@ export function AnnotationCanvas({
 
   // 鼠标释放
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    interactionState.current.tip = false
     if (e.button === 0) { // 左键释放
       // 左键 选中并拖动了,更新数据
       if (interactionState.current.isSelecting && interactionState.current.isDragging) {
@@ -672,6 +673,7 @@ export function AnnotationCanvas({
       if ((key === 'delete' || key === 'backspace' || key === 'q') && interactionState.current.selectedMarkIdx !== -1) {
         const marks = localBoxes.filter(box => box.nth !== interactionState.current.selectedMarkIdx)
         onUpdateMarks(marks)
+        setLocalBoxes(marks)
         setSelectedBox(null)
         changeMarkIdx(-1)
         draw()
@@ -682,8 +684,8 @@ export function AnnotationCanvas({
       if (key === 'd') {
         onChangeImage(1)
       }
-      if (key === 'w' || key === 's') {
-        interactionState.current.tip = !interactionState.current.tip
+      if (key === 'w') {
+        store.showXline = !store.showXline
         draw()
       }
     }
@@ -785,34 +787,6 @@ export function AnnotationCanvas({
         🔄 重置视图
       </button>
 
-      {/* 导出 YOLO 格式数据 */}
-      <button
-        onClick={() => {
-          const data = localBoxes.map(box => ({
-            cx: box.cx,
-            cy: box.cy,
-            width: box.width,
-            height: box.height
-          }))
-          console.log('YOLO Format:', data)
-          alert('已输出 YOLO 格式数据到控制台')
-        }}
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 110,
-          padding: '6px 12px',
-          background: 'rgba(78, 205, 196, 0.9)',
-          color: 'white',
-          border: 'none',
-          borderRadius: 4,
-          cursor: 'pointer',
-          fontSize: 12,
-          backdropFilter: 'blur(4px)'
-        }}
-      >
-        📊 导出 YOLO
-      </button>
     </div>
   )
 }

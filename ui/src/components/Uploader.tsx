@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Modal, Progress, Button, Space, message } from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
+import { Modal, Progress, Button, Space, message, Input, InputRef } from 'antd'
+import { PlusOutlined, UploadOutlined } from '@ant-design/icons'
 import axios, { AxiosProgressEvent } from 'axios'
 
 interface UploadFileItem {
@@ -19,6 +19,8 @@ function Uploader(props: { config: any }) {
   const [isScroll, setIsScroll] = useState(false)
   const [modalVisible, setModalVisible] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const groupRef = useRef<InputRef>(null)
+  const [group, setGroup] = useState('')
 
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollend = useCallback(() => {
@@ -31,6 +33,7 @@ function Uploader(props: { config: any }) {
     }
   }, [containerRef.current])
   const handleSelectClick = () => {
+    setModalVisible(true)
     fileInputRef.current?.click()
   }
   // 选择文件
@@ -62,6 +65,7 @@ function Uploader(props: { config: any }) {
   const uploadFile = async (file: UploadFileItem) => {
     const formData = new FormData()
     formData.append('files', file.file)
+    formData.append('group', group)
 
     try {
       const response = await axios.post(`/api/projects/${props.config.project_id}/images`, formData, {
@@ -194,7 +198,7 @@ function Uploader(props: { config: any }) {
         />
         <label htmlFor="file-input" onClick={handleSelectClick}>
           <Button type="primary" icon={<UploadOutlined />} size="middle">
-            上传图片
+            上传
           </Button>
         </label>
       </div>
@@ -220,6 +224,9 @@ function Uploader(props: { config: any }) {
               </span>
             </div>
             <Space>
+              <Input disabled={uploading} addonBefore="分组" ref={groupRef} style={{ width: 150 }} onChange={e => {
+                setGroup(e.target.value)
+              }} />
               <Button onClick={clearAll} disabled={uploading}>
                 关闭
               </Button>
@@ -240,8 +247,8 @@ function Uploader(props: { config: any }) {
         }}
       >
         {files.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#bfbfbf' }}>
-            暂无图片
+          <div style={{ textAlign: 'center', padding: '40px 0', }}>
+            暂无图片 <PlusOutlined onClick={() => { fileInputRef.current?.click() }} />
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} ref={containerRef}>

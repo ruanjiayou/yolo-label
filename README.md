@@ -27,4 +27,5 @@ This project was created using `bun init` in bun v1.3.12. [Bun](https://bun.com)
 - [x] 调整标注大小后更新数据
 - [x] 图片默认显示比例为100%
 - [ ] 一键生成数据集支持设置验证集数量({type: 'quantity' | 'percent', value: Number})
-- [ ] w为辅助线(常态)切换开关
+- [x] w为辅助线(常态)切换开关
+- [x] 图片添加分组字段

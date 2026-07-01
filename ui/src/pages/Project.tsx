@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { AnnotationCanvas } from "../components/AnnotationCanvas";
 import store, { IImage, IProject, useLocalProxy } from "../store";
@@ -7,9 +7,11 @@ import { createProjectLabel, deleteImage, deleteLabel, getProjectDetail, getProj
 import styled from "styled-components";
 import { AlignASide } from "../style";
 import Uploader from "../components/Uploader";
-import { DeleteFilled, SyncOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, DeleteFilled, SyncOutlined } from "@ant-design/icons";
+import { Button, Input, List, Select, Space, } from "antd";
+import type { InputRef } from 'antd';
 
-const List = styled.div`
+const MyList = styled.div`
   background-color: #eee;
   border-left: 5px solid #558ABB;
   padding-top: 5px;
@@ -44,6 +46,8 @@ export const Project = () => {
     images: IImage[];
     labelMap: { [key: string]: string },
     currentLabelId: string;
+    labelToAdd: string;
+    groupQuery: string;
   }>({
     loading: true,
     activeImageIndex: -1,
@@ -53,10 +57,13 @@ export const Project = () => {
     images: [],
     labelMap: {},
     currentLabelId: '',
+    labelToAdd: '',
+    groupQuery: ''
   })
 
   const { id } = useParams<{ id: string }>()
   const [currentImage, setCurrentImage] = useState<IImage | null>(null)
+  const classRef = useRef<InputRef>(null)
 
   useEffect(() => {
     if (store.projects.length === 0) {
@@ -65,6 +72,7 @@ export const Project = () => {
       })
     }
     if (id) {
+      detailStore.groupQuery = '';
       // 切换项目时加载详情详情(含标签列表)和对应图片
       getProjectDetail(id).then(data => {
         detailStore.project = data
@@ -89,54 +97,58 @@ export const Project = () => {
   }, [detailState.activeImageIndex])
   // const currentImage = detailState.images[detailState.activeImageIndex];
 
-  // 动作封装
-  const saveCurrentAnnotations = useCallback((indexToSave = detailState.activeImageIndex) => {
-    const img = detailStore.images[indexToSave];
-    if (!img) return;
-  }, [detailStore.images, detailStore.activeImageIndex]);
   const changeImage = useCallback((direction: 1 | -1) => {
     if (direction === 1 && detailStore.activeImageIndex < detailStore.images.length - 1) {
-      saveCurrentAnnotations();
       detailStore.activeImageIndex = detailStore.activeImageIndex + 1
     }
     if (direction === -1 && detailStore.activeImageIndex > 0) {
-      saveCurrentAnnotations();
       detailStore.activeImageIndex = detailStore.activeImageIndex - 1;
     }
   }, [])
-  const handleExportYolo = () => {
-    fetch(`/api/projects/${id}/export-yolo`, { method: "POST" })
-      .then(res => res.json())
-      .then(res => alert(`导出成功，路径在: ${res.path}`));
-  };
+  // 添加分类
   const onAddLabel = useCallback(async () => {
-    const oinput = document.getElementById('label_input') as HTMLInputElement;
-    if (detailStore.project && detailStore.project.labels && oinput) {
-      createProjectLabel({ label: oinput.value, nth: detailStore.project?.labels?.length || 0, projectId: id as string })
+    if (detailStore.project && detailStore.project.labels && classRef.current) {
+      const label = detailStore.labelToAdd
+      createProjectLabel({ label: label, nth: detailStore.project?.labels?.length || 0, projectId: id as string })
         .then((data) => {
           detailStore.project?.labels?.push(data)
-          oinput.value = '';
+          detailStore.labelToAdd = ''
+          classRef.current?.focus()
         })
     }
   }, [])
+  // 删除分类
   const onDeleteLabel = useCallback(async (id: string) => {
     await deleteLabel(id)
     const idx = detailStore.project?.labels?.findIndex(label => label.id === id) || -1
     detailStore.project?.labels?.splice(idx, 1)
+    detailStore.selectedLabelNth = 0
   }, [])
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "sans-serif" }}>
       {/* 左侧菜单 */}
       <div style={{ display: 'flex', flexDirection: 'column', width: 250, borderRight: "1px solid #ddd", padding: 15 }}>
         <h3 style={{ marginTop: 0 }}><Link to={"/"}>🏠</Link> 项目选择</h3>
-        <AlignASide style={{ gap: 10 }}>
-          <select value={id} onChange={(e) => navigate(`/project/${e.target.value}`)} style={{ width: "100%", padding: 8 }}>
-            {state.projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.title}</option>
-            ))}
-          </select>
-          <Uploader config={{ project_id: id }} />
-        </AlignASide>
+        <Space.Compact style={{ overflow: 'hidden' }}>
+          <Select
+            value={id}
+            onChange={(v) => navigate(`/project/${v}`)}
+            style={{ width: 150, }}
+            options={state.projects.map(p => ({ value: p.id, lable: p.title }))}
+          />
+          <Select
+            value={detailState.groupQuery}
+            options={[{ label: '全部', value: '' }, ...(detailStore.project?.groups || []).map(v => ({ label: v, value: v }))]}
+            style={{ flex: 1, minWidth: 20 }}
+            onChange={v => {
+              detailStore.groupQuery = v
+              getProjectImages(id as string, { group: detailStore.groupQuery }).then(images => {
+                detailStore.images = images;
+                detailStore.activeImageIndex = 0
+              })
+            }}
+          />
+        </Space.Compact>
 
         <AlignASide style={{ margin: '10px 0' }}>
           <span>图片列表 ({detailState.images.length === 0 ? 0 : detailState.activeImageIndex + 1}/{detailState.images.length})</span>
@@ -145,15 +157,14 @@ export const Project = () => {
               detailStore.images = images;
             })
           }} />
-          <div></div>
+          <Uploader config={{ project_id: id }} />
         </AlignASide>
-        <List>
+        <MyList>
           {detailState.images.map((img, idx) => (
             <AlignASide key={img.id} style={{ gap: 10, padding: "5px 10px 5px 10px", backgroundColor: idx === detailState.activeImageIndex ? "#e6f7ff" : "transparent", }}>
               <TxtOmit
                 title={img.path}
                 onClick={(e) => {
-                  saveCurrentAnnotations();
                   detailStore.activeImageIndex = idx;
                   e.currentTarget.scrollIntoView({
                     behavior: 'smooth',  // 平滑滚动
@@ -171,13 +182,16 @@ export const Project = () => {
                 {img.path}
               </TxtOmit>
               <DeleteFilled color="red" onClick={() => {
+                const idx = detailStore.images.findIndex(v => v.id === img.id)
+                if (idx === detailStore.activeImageIndex) detailStore.activeImageIndex = -1;
                 deleteImage(img.id).then(() => {
                   detailStore.images = detailStore.images.filter(item => item.id !== img.id)
+                  detailStore.activeImageIndex = idx;
                 })
               }} />
             </AlignASide>
           ))}
-        </List>
+        </MyList>
 
       </div>
 
@@ -212,30 +226,40 @@ export const Project = () => {
       <div style={{ width: 200, borderLeft: "1px solid #ddd", padding: 15, display: "flex", flexDirection: "column" }}>
         <AlignASide style={{ gap: 10 }}>
         </AlignASide>
-        <AlignASide style={{ gap: 10 }}>
-          <input id="label_input" style={{ flex: 1, minWidth: 30 }} />
-          <button onClick={onAddLabel}>添加分类</button>
-        </AlignASide>
-        <div>
+        <Space.Compact>
+          <Input id="label_input" value={detailState.labelToAdd} ref={classRef} style={{ flex: 1, minWidth: 30 }} addonBefore={"分类"} onChange={(e) => {
+            detailStore.labelToAdd = e.target.value
+          }} />
+          <Button type="primary" onClick={onAddLabel}>添加</Button>
+        </Space.Compact>
+        <List bordered header={"分类列表"} style={{ marginTop: 10, marginBottom: 10, overflow: 'hidden' }}>
           {detailState.project?.labels!.map((l, nth) => (
-            <AlignASide key={l.id} style={{ margin: '5px 0' }} onClick={() => {
-              detailStore.selectedLabelNth = nth
-              detailStore.currentLabelId = l.id
-            }}>
-              <span dangerouslySetInnerHTML={{ __html: `[${detailState.selectedLabelNth === nth ? '✅' : '&nbsp;&nbsp;&nbsp;'}] ${l.nth}` }}></span>
-              <span>{l.label}</span>
-              <span onClick={() => onDeleteLabel(l.id)}>X</span>
-            </AlignASide>
+            <List.Item key={l.id} style={detailState.selectedLabelNth === nth ? { backgroundColor: '#07f8', color: 'white' } : {}}>
+              <AlignASide style={{ margin: '5px 0', width: '100%' }} onClick={() => {
+                detailStore.selectedLabelNth = nth
+                detailStore.currentLabelId = l.id
+              }}>
+                <span>{l.nth} {l.label} {detailState.selectedLabelNth === nth ? <CheckCircleOutlined /> : ''}</span>
+                <DeleteFilled onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  onDeleteLabel(l.id)
+                }} />
+              </AlignASide>
+            </List.Item>
           ))}
-        </div>
-        <hr style={{ margin: '20px 0' }} />
-        <p>标注</p>
-        <div>
+        </List>
+        <List bordered header={"分组列表"} style={{ marginBottom: 10, backgroundColor: '#eee', cursor: 'not-allowed' }}>
+          {detailState.project?.groups.map((group, idx) => (
+            <List.Item key={idx}>{group}</List.Item>
+          ))}
+        </List>
+        <List bordered header={"标注数组"}>
           {currentImage && currentImage.marks.map((mark, idx) => (
-            <div key={idx}>
-              <AlignASide>
+            <List.Item key={idx}>
+              <AlignASide style={{ width: '100%' }}>
                 <span>{detailState.labelMap[mark.id] || '未知'}</span>
-                <span onClick={() => {
+                <DeleteFilled onClick={() => {
                   const marks = currentImage.marks.filter((_m, nth) => nth !== idx)
                   updateImageMarks(currentImage.id, marks).then(() => {
                     detailStore.images.forEach(image => {
@@ -244,13 +268,13 @@ export const Project = () => {
                       }
                     })
                   })
-                }}>x</span>
+                }} />
               </AlignASide>
-
-            </div>
+            </List.Item>
           ))}
-        </div>
+        </List>
 
+        <div style={{ flex: 1 }}></div>
         <div style={{ marginTop: 10, fontSize: 13, color: "#666" }}>
           <h5>操作说明:</h5>
           <ul>
@@ -259,16 +283,15 @@ export const Project = () => {
             <li>键盘 S: 显示辅助线</li>
             <li>键盘 A: 上一张</li>
             <li>键盘 D: 下一张</li>
+            <li>鼠标滚动可缩放图片</li>
           </ul>
         </div>
-        <div style={{ flex: 1 }}></div>
         <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button onClick={() => changeImage(-1)} disabled={detailState.activeImageIndex === 0}>上一张 (A)</button>
-          <button onClick={() => changeImage(1)} disabled={detailState.activeImageIndex === detailState.images.length - 1}>下一张 (D)</button>
-          <span style={{ marginLeft: 15, color: "#666" }}>💡 鼠标滚动可缩放图片</span>
+          <Button type="primary" onClick={() => changeImage(-1)} disabled={detailState.activeImageIndex === 0}>上一张 (A)</Button>
+          <Button type="primary" onClick={() => changeImage(1)} disabled={detailState.activeImageIndex === detailState.images.length - 1}>下一张 (D)</Button>
         </div>
-        <button onClick={handleExportYolo} style={{ marginTop: 20, width: "100%", padding: 10, background: "#52c41a", color: "#fff", border: "none" }}>
-          一键划分为 YOLO 数据集
+        <button style={{ marginTop: 20, width: "100%", padding: 10, background: "#52c41a", color: "#fff", border: "none" }}>
+          一键生成 YOLO 数据集
         </button>
       </div>
     </div>

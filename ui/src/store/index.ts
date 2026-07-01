@@ -7,6 +7,7 @@ export type IProject = {
   title: string;
   dir: string;
   config: any;
+  groups: string[];
   labels?: ILabel[];
 }
 export type ILabel = {
@@ -38,9 +39,11 @@ export function useLocalProxy<T extends object>(initialState: T) {
 const store = proxy<{
   app: typeof App,
   projects: IProject[],
+  showXline: boolean,
 }>({
   app: App,
   projects: [],
+  showXline: false,
 });
 
 export default store;
